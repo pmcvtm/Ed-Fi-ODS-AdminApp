@@ -54,14 +54,6 @@ jobs:
         with:
           dotnet-version: 6.0.x
 
-      - name: Publish .NET Assemblies
-        run: |
-          $appVersion = "${{ steps.versions.outputs.admin-app-semver }}"
-
-          ./build.ps1 -Command BuildAndPublish `
-              -Configuration Release `
-              -Version $appVersion 
-
       - name: Populate Google Analytics ID
         run: .\build.ps1 -Command PopulateGoogleAnalyticsAppSettings -GoogleAnalyticsMeasurementId ${{env.GA_MEASUREMENT_ID}}
 
