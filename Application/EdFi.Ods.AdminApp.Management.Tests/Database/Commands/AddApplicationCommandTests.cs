@@ -23,6 +23,8 @@ namespace EdFi.Ods.AdminApp.Management.Tests.Database.Commands
         [Test]
         public void ShouldFailForInvalidVendor()
         {
+            throw new Exception("Fail Also!");
+
             var vendor = new Vendor
             {
                 VendorNamespacePrefixes = new List<VendorNamespacePrefix> {new VendorNamespacePrefix { NamespacePrefix = "http://tests.com" } },
@@ -141,7 +143,7 @@ namespace EdFi.Ods.AdminApp.Management.Tests.Database.Commands
                 apiClient.Secret.ShouldBe(result.Secret);
             });
         }
-        
+
         [Test]
         public void ShouldExecute()
         {
