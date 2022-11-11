@@ -17,8 +17,7 @@ env:
 
 jobs:
   create-pre-releases:
-    name: Create Pre-Releases
-    # Was not successful filtering out alpha in on.push.tags, so try filtering at the job level
+    name: Create Pre-Release
     if: "! contains(github.ref_name, 'alpha')"
     runs-on: ubuntu-latest
     defaults:
@@ -28,10 +27,6 @@ jobs:
       - name: Checkout the Repo
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
         with:
-          # MinVer needs to have more than just the current commit, so tell
-          # GitHub to get many more. Setting to 0 forces retrieval of _all_
-          # commits. Which might be excessive, but we don't know how many
-          # there will be between different major.minor releases.
           fetch-depth: 0
 
       - name: Set Version Numbers
