@@ -44,24 +44,7 @@ jobs:
 
           "admin-app=$($webPrefix)$(minver -t $webPrefix)" >> $env:GITHUB_OUTPUT
 
-      - name: Create Admin App Web Pre-Release
+      - name: Create Pre-Release
         run: |
-          $version = "${{ steps.versions.outputs.admin-app }}"
-          $tag = $version -replace "v","Pre-Release-v"  
-
-          $body = @{
-            tag_name = "$tag"
-            target_commitish = "main"
-            name = $version
-            body = ""
-            draft = $false
-            prerelease = $true
-            generate_release_notes = $false
-          } | ConvertTo-Json
-
-          $headers = @{
-            Accept = "application/vnd.github+json"
-            Authorization = "Bearer ${{ env.TOKEN }}"
-          }
-
-          Invoke-RestMethod -Method POST -Uri ${{ env.API_URL }}/releases -Body $body -Headers $headers
+          Import-Module -Name ./eng/github-utils.psm1
+          CreateRelease -Version ${{ steps.versions.outputs.admin-app }} -RepoUrl ${{ env.API_URL }} -Token ${{ env.TOKEN }}
