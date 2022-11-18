@@ -22,14 +22,16 @@ env:
   PACKAGE_NAME: "AdminApp.Web"
 
 jobs:
-  create-pre-releases:
-    name: Create Pre-Releases
+  create-pre-release:
+    name: Create Pre-Release
     # Was not successful filtering out alpha in on.push.tags, so try filtering at the job level
     if: "! contains(github.ref_name, 'alpha')"
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: pwsh
+    outputs:
+      version: ${{ steps.set-version.outputs.version }}
     steps:
       - name: Checkout the Repo
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
@@ -41,50 +43,35 @@ jobs:
           fetch-depth: 0
 
       - name: Set Version Numbers
-        id: versions
+        id: set-version
         run: |
           $webPrefix = "v"
 
           # Install the MinVer CLI tool
           &dotnet tool install --global minver-cli
 
-          "admin-app=$($webPrefix)$(minver -t $webPrefix)" >> $env:GITHUB_OUTPUT
+          $semVer = $(minver -t $webPrefix)
+          $version = $webPrefix + $semVer
+          echo "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Create Pre-Release
         run: |
           Import-Module -Name ./eng/github-utils.psm1
-          CreateRelease -Version ${{ steps.versions.outputs.admin-app }} -RepoUrl ${{ env.API_URL }} -Token ${{ env.TOKEN }}
+          CreateRelease -Version ${{ steps.set-version.outputs.version }} -RepoUrl ${{ env.API_URL }} -Token ${{ env.TOKEN }}
   pack:
     name: Build and Pack
     runs-on: ubuntu-latest
-    needs: create-pre-releases
+    needs: create-pre-release
     defaults:
       run:
         shell: pwsh
     outputs:
       hash-code: ${{ steps.hash-code.outputs.hash-code }}
-      admin-app-version: ${{ steps.versions.outputs.admin-app }}
 
     steps:
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
         with:
           fetch-depth: 0
-
-      - name: Set Version Numbers
-        id: versions
-        run: |
-          $webPrefix = "v"
-
-          # Install the MinVer CLI tool
-          &dotnet tool install --global minver-cli
-
-          $appVersion = $(minver -t $webPrefix)
-
-          # Full release name
-          "admin-app=$appVersion" >> $env:GITHUB_OUTPUT
-
-          # SemVer
-          admin-app-semver=$($appVersion -Replace $webPrefix)" >> $env:GITHUB_OUTPUT
 
       - name: Setup .NET
         uses: actions/setup-dotnet@9211491ffb35dd6a6657ca4f45d43dfe6e97c829 # v2.0.0
@@ -93,11 +80,9 @@ jobs:
 
       - name: Publish .NET Assemblies
         run: |
-          $appVersion = "${{ steps.versions.outputs.admin-app-semver }}"
-
           ./build.ps1 -Command BuildAndPublish `
               -Configuration Release `
-              -Version $appVersion 
+              -Version "${{ needs.create-pre-release.outputs.version }}"
 
       - name: Populate Google Analytics ID
         run: .\build.ps1 -Command PopulateGoogleAnalyticsAppSettings -GoogleAnalyticsMeasurementId ${{env.GA_MEASUREMENT_ID}}
@@ -108,7 +93,7 @@ jobs:
       - name: Create NuGet Packages
         if: success()
         run: |
-          $appVersion = "${{ steps.versions.outputs.admin-app-semver }}"
+          $appVersion = "${{ needs.create-pre-release.outputs.version }}"
 
           "Building ${{ env.PACKAGE_NAME }} NuGet Package" | Write-Output
           # Web, and DB
@@ -165,14 +150,12 @@ jobs:
           Get-ChildItem -Include "EdFi.Suite3.ODS.$packageName.*.nupkg" -Recurse | ForEach-Object { $_.FullName } > buildfilelist.txt
           New-Item -Path manifest -Type Directory
 
-          $version = "${{ needs.pack.outputs.admin-app-version }}"
-
           &$out generate `
               -b ./ `
               -bl ./buildfilelist.txt `
               -bc "./Application/EdFi.Ods.$packageName" `
               -pn "EdFi.Suite3.ODS.$packageName" `
-              -pv $version `
+              -pv "${{ needs.create-pre-release.outputs.version }}" `
               -nsb https://ed-fi.org `
               -m manifest `
               -ps "Ed-Fi Alliance"
