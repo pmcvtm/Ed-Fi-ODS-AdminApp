@@ -41,4 +41,24 @@ function CreateRelease {
     }
 }
 
+function UploadToRelease {
+  param (
+    [Parameter(Mandatory=$true)] [string] $UploadUrl,
+    [Parameter(Mandatory=$true)] [string] $UploadFile,
+    [Parameter(Mandatory=$true)] [string] $Token
+  )
+
+  $gh_headers = @{
+      "Accept"        = "application/vnd.github+json"
+      "Authorization" = "Bearer $Token"
+      "Content-Type"  = "application/octet"
+  }
+
+  Invoke-RestMethod -Method POST `
+      -Uri "$($UploadUrl)?name=$($UploadFile)" `
+      -Headers $gh_headers `
+      -InFile $UploadFile
+}
+
 Export-ModuleMember -Function CreateRelease
+Export-ModuleMember -Function UploadToRelease
