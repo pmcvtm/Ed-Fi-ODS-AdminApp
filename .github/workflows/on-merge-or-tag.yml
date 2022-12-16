@@ -60,7 +60,7 @@ jobs:
         run: |
           Import-Module -Name ./eng/github-utils.psm1
           $result = CreateRelease -Version ${{ steps.set-version.outputs.version }} -RepoUrl ${{ env.API_URL }} -Token ${{ env.TOKEN }}
-          echo "uploadUrl=$result.UploadUrl" >> $env:GITHUB_OUTPUT
+          echo "uploadUrl=$($result.UploadUrl)" >> $env:GITHUB_OUTPUT
   pack:
     name: Build and Pack
     runs-on: ubuntu-latest
