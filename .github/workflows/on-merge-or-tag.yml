@@ -20,6 +20,7 @@ env:
   VSS_NUGET_EXTERNAL_FEED_ENDPOINTS: '{"endpointCredentials": [{"endpoint": "${{ secrets.AZURE_ARTIFACTS_FEED_URL }}","password": "${{ secrets.AZURE_ARTIFACTS_PERSONAL_ACCESS_TOKEN }}"}]}'
   MANIFEST_FILE: "_manifest/spdx_2.2/manifest.spdx.json"
   PACKAGE_NAME: "AdminApp.Web"
+  VERSION_PREFIX: "v"
 
 jobs:
   create-pre-release:
@@ -46,14 +47,13 @@ jobs:
       - name: Set Version Numbers
         id: set-version
         run: |
-          $webPrefix = "v"
+          $webPrefix = "${{ env.VERSION_PREFIX }}"
 
           # Install the MinVer CLI tool
           &dotnet tool install --global minver-cli
 
           $semVer = $(minver -t $webPrefix)
-          $version = $webPrefix + $semVer
-          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "version=$semVer" >> $env:GITHUB_OUTPUT
 
       - name: Create Pre-Release
         id: release
@@ -144,6 +144,8 @@ jobs:
         shell: pwsh
         run: |
           $packageName = "${{ env.PACKAGE_NAME }}"
+          $versionPrefix = "${{ env.VERSION_PREFIX }}"
+          $versionSemVer = "${{ needs.create-pre-release.outputs.version }}"
 
           $url = "https://github.com/microsoft/sbom-tool/releases/latest/download/sbom-tool-linux-x64"
           $out = "$($env:RUNNER_TEMP)/sbom-tool"
@@ -158,7 +160,7 @@ jobs:
               -bl ./buildfilelist.txt `
               -bc "./Application/EdFi.Ods.$packageName" `
               -pn "EdFi.Suite3.ODS.$packageName" `
-              -pv "${{ needs.create-pre-release.outputs.version }}" `
+              -pv "$($versionPrefix + $versionSemVer)" `
               -nsb https://ed-fi.org `
               -m manifest `
               -ps "Ed-Fi Alliance"
